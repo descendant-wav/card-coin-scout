@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Coin Scout</title>
+<meta name="theme-color" content="#111827">
+<style>
+body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f3f4f6;color:#111827;margin:0}
+main{max-width:720px;margin:auto;padding:16px}
+h1{margin:4px 0 2px}.sub{color:#6b7280;margin-bottom:16px}
+.card{background:white;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 2px 12px #0001}
+button{border:0;border-radius:12px;padding:13px 15px;font-size:16px;font-weight:700;margin:5px 0;cursor:pointer}
+.primary{background:#111827;color:white;width:100%}.secondary{background:#e5e7eb;color:#111827;width:100%}
+input[type=file]{display:none}.upload{display:block;background:#e5e7eb;border-radius:12px;padding:14px;text-align:center;font-weight:700;margin:7px 0}
+img.preview{display:none;width:100%;max-height:340px;object-fit:contain;border-radius:12px;margin-top:8px;background:#111}
+table{width:100%;border-collapse:collapse}td{padding:9px 4px;border-bottom:1px solid #eee}td:last-child{text-align:right}
+.badge{display:inline-block;padding:7px 11px;border-radius:999px;font-weight:800}.green{background:#dcfce7;color:#166534}.blue{background:#dbeafe;color:#1e40af}.yellow{background:#fef3c7;color:#92400e}.red{background:#fee2e2;color:#991b1b}.gray{background:#e5e7eb;color:#374151}
+.notice{background:#f9fafb;border-left:4px solid #9ca3af;padding:11px;border-radius:8px;margin:10px 0}.small{font-size:13px;color:#6b7280}.spinner{padding:25px;text-align:center;font-weight:700}
+.hidden{display:none}.row{display:flex;gap:8px}.metric{flex:1;background:#f9fafb;padding:12px;border-radius:10px}.metric b{display:block;font-size:18px;margin-top:3px}
+a.link{display:block;text-align:center;margin:14px 0;color:#2563eb;font-weight:700}
+</style>
+</head>
+<body>
+<main>
+<div class="card">
+<h1>🪙 Coin Scout</h1>
+<div class="sub">A treasure filter for U.S. coins — find silver, key dates, varieties and coins worth a closer look.</div>
+<div class="notice"><b>Local-first:</b> ordinary screening uses no OpenAI API tokens. AI research is optional.</div>
+</div>
+
+<div class="card">
+<h2>1. Coin photos</h2>
+<label class="upload">📷 Front of coin<input id="front" type="file" accept="image/*" capture="environment"></label>
+<img id="frontPreview" class="preview">
+<label class="upload">📷 Back of coin<input id="back" type="file" accept="image/*" capture="environment"></label>
+<img id="backPreview" class="preview">
+<button id="local" class="primary">🟢 Free Coin Screen</button>
+</div>
+
+<div class="card">
+<h2>2. Deeper research</h2>
+<div class="small">Only use this when the free screen finds something interesting or you want a closer identification.</div>
+<input id="key" type="password" placeholder="OpenAI API key (optional)" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #d1d5db;border-radius:10px;margin:8px 0">
+<button id="saveKey" class="secondary">Save API Key on this phone</button>
+<button id="research" class="primary">🔬 AI Research This Coin</button>
+</div>
+
+<div id="result" class="card hidden"></div>
+
+<div class="card">
+<h2>What we're hunting</h2>
+<div class="small">
+<b>🔵 MELT:</b> precious-metal content detected.<br>
+<b>🟡 CHECK:</b> year/mint/type deserves verification.<br>
+<b>🔥 HOT:</b> possible key date, variety, error or strong collectible candidate.<br>
+<b>🟢 COMMON:</b> no obvious premium found by the free screen.
+</div>
+</div>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+let frontFile=null,backFile=null,lastScreen=null;
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money=n=>"$"+Number(n||0).toFixed(2);
+
+function showPreview(file,img){
+ if(!file)return;
+ img.src=URL.createObjectURL(file);img.style.display="block";
+}
+$("front").onchange=e=>{frontFile=e.target.files[0]||null;showPreview(frontFile,$("frontPreview"))};
+$("back").onchange=e=>{backFile=e.target.files[0]||null;showPreview(backFile,$("backPreview"))};
+
+$("saveKey").onclick=()=>{
+ const k=$("key").value.trim();if(k){localStorage.setItem("coin_scout_key",k);alert("API key saved on this phone.");}
+};
+$("key").value=localStorage.getItem("coin_scout_key")||"";
+
+async function ocr(file){
+ if(!window.Tesseract)throw new Error("OCR engine is still loading. Try again in a few seconds.");
+ const r=await Tesseract.recognize(file,"eng",{logger:()=>{}});
+ return r.data.text||"";
+}
+function normalize(s){return String(s||"").toUpperCase().replace(/\s+/g," ").trim()}
+function extractYear(text){
+ const years=(text.match(/\b(17|18|19|20)\d{2}\b/g)||[]).map(Number).filter(y=>y>=1700&&y<=new Date().getFullYear()+1);
+ return years.length?Math.min(...years):null;
+}
+function mintMark(text){
+ const u=normalize(text);
+ // Mint marks are deliberately conservative. A blank mint mark can be correct.
+ const m=u.match(/\b([DSOPW])\b/);
+ return m?m[1]:"";
+}
+function denom(text){
+ const u=normalize(text);
+ if(/HALF\s*DOLLAR|\b50\s*CENTS?\b/.test(u))return "Half Dollar";
+ if(/\bQUARTER\b|\b25\s*CENTS?\b/.test(u))return "Quarter";
+ if(/\bDIME\b|\b10\s*CENTS?\b/.test(u))return "Dime";
+ if(/\bNICKEL\b|\b5\s*CENTS?\b/.test(u))return "Nickel";
+ if/\bONE\s*CENT\b|\bCENT\b/.test(u))return "Cent";
+ if(/\bDOLLAR\b|\$1\b/.test(u))return "Dollar";
+ return "Unknown";
+}
+function localRules(year,den,mint,text){
+ const u=normalize(text);
+ let composition="Unknown",silverOz=0,flags=[],triage="CHECK",reason=[];
+ // Common U.S. composition eras. These are screening rules, not grading.
+ if(den==="Dime" && year && year<=1964){composition="90% silver";silverOz=.07234;triage="MELT";reason.push("Pre-1965 U.S. dime candidate: silver-era composition.");}
+ else if(den==="Quarter" && year && year<=1964){composition="90% silver";silverOz=.18084;triage="MELT";reason.push("Pre-1965 U.S. quarter candidate: silver-era composition.");}
+ else if(den==="Half Dollar" && year && year<=1964){composition="90% silver";silverOz=.36169;triage="MELT";reason.push("1964-or-earlier U.S. half-dollar candidate: 90% silver.");}
+ else if(den==="Half Dollar" && year && year>=1965 && year<=1970){composition="40% silver";silverOz=.1479;triage="MELT";reason.push("1965–1970 Kennedy half-dollar candidate: 40% silver.");}
+ else if(den==="Dollar" && year && year>=1878 && year<=1935){composition="90% silver";silverOz=.77344;triage="MELT";reason.push("Morgan/Peace-era dollar candidate: silver-era composition.");}
+ else if(den==="Cent" && year && year>=1909 && year<=1958){composition="Copper alloy";reason.push("Wheat-cent era candidate.");}
+
+ // Key-date/variety screening. We deliberately flag rather than declare a variety.
+ if(den==="Cent" && year===1909){flags.push("1909 Lincoln cent — check mint mark and VDB.");triage="HOT"}
+ if(den==="Cent" && year===1914 && mint==="D"){flags.push("1914-D Lincoln cent candidate.");triage="HOT"}
+ if(den==="Cent" && year===1922 && mint==="D"){flags.push("1922-D Lincoln cent candidate — verify variety details.");triage="HOT"}
+ if(den==="Cent" && year===1931 && mint==="S"){flags.push("1931-S Lincoln cent candidate.");triage="HOT"}
+ if(den==="Cent" && year===1955){flags.push("1955 Lincoln cent — inspect closely for doubled die.");triage="HOT"}
+ if(den==="Nickel" && year===1938){flags.push("1938 Buffalo/Jefferson-era date needs type verification.");triage="CHECK"}
+ if(den==="Nickel" && year===1942){flags.push("1942 nickel: verify type and mint mark; wartime composition may apply.");triage="CHECK"}
+ if(den==="Dime" && year===1916 && mint==="D"){flags.push("1916-D Mercury dime candidate.");triage="HOT"}
+ if(den==="Dime" && year===1942){flags.push("1942 Mercury dime: inspect for possible 1942/1 overdate.");triage="HOT"}
+ if(den==="Quarter" && year===1916){flags.push("1916 Standing Liberty quarter candidate.");triage="HOT"}
+ if(den==="Quarter" && year===1932 && mint==="D"){flags.push("1932-D Washington quarter candidate.");triage="HOT"}
+ if(den==="Quarter" && year===1932 && mint==="S"){flags.push("1932-S Washington quarter candidate.");triage="HOT"}
+ if(den==="Half Dollar" && year===1916){flags.push("1916 Walking Liberty half-dollar candidate.");triage="HOT"}
+
+ if(year && year<1900){flags.push("19th-century U.S. coin candidate — do not return to the ordinary pile without verification.");triage="HOT"}
+ if(den==="Unknown" || !year){triage=triage==="HOT"?"HOT":"CHECK";reason.push("Type/year not securely identified locally.");}
+
+ return {composition,silverOz,flags,triage,reason};
+}
+
+$("local").onclick=async()=>{
+ $("result").classList.remove("hidden");$("result").innerHTML='<div class="spinner">🔎 Reading the coin locally…</div>';
+ if(!frontFile&&!backFile){$("result").innerHTML='<div class="notice"><b>Take at least one coin photo first.</b></div>';return}
+ try{
+  let text="";
+  if(frontFile)text+=" "+await ocr(frontFile);
+  if(backFile)text+=" "+await ocr(backFile);
+  text=text.replace(/\s+/g," ").trim();
+  const year=extractYear(text),den=denom(text),mint=mintMark(text);
+  const rules=localRules(year,den,mint,text);
+  const silverSpot=66.19; // latest checked PCGS silver spot; AI research can refresh later.
+  const melt=rules.silverOz*silverSpot;
+  const badge=rules.triage==="HOT"?'<span class="badge red">🔥 HOT</span>':rules.triage==="MELT"?'<span class="badge blue">🔵 MELT</span>':rules.triage==="COMMON"?'<span class="badge green">🟢 COMMON</span>':'<span class="badge yellow">🟡 CHECK</span>';
+  lastScreen={year,den,mint,text,rules,melt};
+  $("result").innerHTML=`
+   <h2>🪙 Free Coin Screen</h2>
+   <div class="notice"><b>No API tokens were used.</b><br>This is a screening result, not a final collectible valuation.</div>
+   <table>
+    <tr><td>Possible type</td><td><b>${esc(den)}</b></td></tr>
+    <tr><td>Possible year</td><td><b>${year||"Not read"}</b></td></tr>
+    <tr><td>Possible mint mark</td><td><b>${mint||"None / not read"}</b></td></tr>
+    <tr><td>Composition screen</td><td><b>${esc(rules.composition)}</b></td></tr>
+   </table>
+   <h3>🚦 Triage</h3><p>${badge}</p>
+   ${rules.silverOz?`<div class="row"><div class="metric"><span class="small">Estimated silver content</span><b>${rules.silverOz.toFixed(5)} oz</b></div><div class="metric"><span class="small">Approx. melt floor</span><b>${money(melt)}</b></div></div><div class="small" style="margin-top:7px">Melt estimate uses $66.19/oz silver as a screening reference; actual dealer/market value can differ.</div>`:""}
+   <h3>What it noticed</h3>
+   ${rules.reason.length?`<ul>${rules.reason.map(x=>"<li>"+esc(x)+"</li>").join("")}</ul>`:""}
+   ${rules.flags.length?`<div class="notice"><b>Potentially important:</b><ul>${rules.flags.map(x=>"<li>"+esc(x)+"</li>").join("")}</ul></div>`:""}
+   <div class="notice"><b>Rule:</b> CHECK/HOT coins should not be returned to the ordinary pile until verified. Silver/MELT coins may also have collectible value above their metal floor.</div>
+   <details><summary class="small">Raw local OCR</summary><p class="small">${esc(text||"(nothing read)")}</p></details>`;
+ }catch(e){$("result").innerHTML='<div class="notice"><b>Local screen failed.</b><br>'+esc(e.message)+'</div>'}
+};
+
+$("research").onclick=async()=>{
+ const key=localStorage.getItem("coin_scout_key")||$("key").value.trim();
+ if(!key){alert("Add your OpenAI API key first.");return}
+ if(!lastScreen){alert("Run Free Coin Screen first.");return}
+ $("result").innerHTML='<div class="spinner">🔬 Researching the coin…</div>';
+ const prompt=`You are a conservative U.S. coin identification and treasure-filtering researcher.
+Use the photographs as the primary evidence. Do NOT invent a year, mint mark, denomination, variety, or error.
+First identify the coin type, date, mint mark, and composition. Then check whether it is:
+1) ordinary/common,
+2) silver or another precious-metal candidate with an intrinsic floor,
+3) a key date,
+4) a known variety/error candidate.
+If evidence is insufficient, say CHECK rather than guessing.
+For possible errors/varieties, say "possible" unless the photos clearly establish the feature.
+Local screen data: ${JSON.stringify(lastScreen)}`;
+ const schema={type:"object",properties:{
+  identification:{type:"string"},year:{type:"string"},denomination:{type:"string"},mint_mark:{type:"string"},
+  composition:{type:"string"},silver_content_oz:{type:"number"},melt_value:{type:"number"},
+  collectible_low:{type:"number"},collectible_typical:{type:"number"},collectible_high:{type:"number"},
+  triage:{type:"string",enum:["COMMON","MELT","CHECK","HOT"]},confidence:{type:"number"},
+  why_it_matters:{type:"string"},checks:{type:"array",items:{type:"string"}}
+ },required:["identification","year","denomination","mint_mark","composition","silver_content_oz","melt_value","collectible_low","collectible_typical","collectible_high","triage","confidence","why_it_matters","checks"],additionalProperties:false};
+ try{
+  const contents=[{type:"input_text",text:prompt}];
+  if(frontFile)contents.push({type:"input_image",image_url:await resize(frontFile),detail:"high"});
+  if(backFile)contents.push({type:"input_image",image_url:await resize(backFile),detail:"high"});
+  const r=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},body:JSON.stringify({
+   model:"gpt-5.6-luna",max_output_tokens:900,input:[{role:"user",content:contents}],text:{format:{type:"json_schema",name:"coin_research",schema,strict:true}}
+  })});
+  if(!r.ok)throw new Error(await r.text());
+  const d=await r.json();let t=(d.output_text||"").trim();if(!t&&d.output)for(const i of d.output)for(const c of (i.content||[]))if(c.text)t+=c.text;
+  const x=JSON.parse(t.replace(/^```json\s*/,"").replace(/```$/,"").trim());
+  const badge=x.triage==="HOT"?'<span class="badge red">🔥 HOT</span>':x.triage==="MELT"?'<span class="badge blue">🔵 MELT</span>':x.triage==="COMMON"?'<span class="badge green">🟢 COMMON</span>':'<span class="badge yellow">🟡 CHECK</span>';
+  $("result").innerHTML=`<h2>${esc(x.identification)}</h2><div class="row"><div class="metric"><span class="small">Confidence</span><b>${esc(x.confidence)}%</b></div><div class="metric"><span class="small">Triage</span><b>${badge}</b></div></div>
+  <table><tr><td>Year</td><td><b>${esc(x.year)}</b></td></tr><tr><td>Denomination</td><td><b>${esc(x.denomination)}</b></td></tr><tr><td>Mint mark</td><td><b>${esc(x.mint_mark)}</b></td></tr><tr><td>Composition</td><td><b>${esc(x.composition)}</b></td></tr><tr><td>Silver content</td><td><b>${Number(x.silver_content_oz||0).toFixed(5)} oz</b></td></tr></table>
+  <h3>💰 Value</h3><div class="row"><div class="metric"><span class="small">Melt</span><b>${money(x.melt_value)}</b></div><div class="metric"><span class="small">Typical collectible</span><b>${money(x.collectible_typical)}</b></div></div>
+  <h3>🚨 Why it matters</h3><p>${esc(x.why_it_matters)}</p><div class="notice"><b>Next checks:</b><ul>${x.checks.map(s=>"<li>"+esc(s)+"</li>").join("")}</ul></div>`;
+ }catch(e){$("result").innerHTML='<div class="notice"><b>AI research failed.</b><br>'+esc(e.message)+'</div>'}
+};
+async function resize(file){
+ return new Promise(resolve=>{const im=new Image();im.onload=()=>{const sc=Math.min(1,900/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);c.getContext("2d").drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL("image/jpeg",.7))};im.src=URL.createObjectURL(file)})
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</body>
+</html>
