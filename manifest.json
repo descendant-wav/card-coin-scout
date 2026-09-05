@@ -1,0 +1,9 @@
+{
+  "name":"Card & Coin Scout V2",
+  "short_name":"Card Scout",
+  "start_url":"./",
+  "display":"standalone",
+  "background_color":"#eef1f5",
+  "theme_color":"#111827",
+  "description":"Scan baseball cards and U.S. coins with front/back photos, condition checks, valuation and sold-comps research."
+}

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<link rel="manifest" href="manifest.json">
+<title>Card & Coin Scout V2</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;background:#eef1f5}
+*{box-sizing:border-box}body{margin:0}.app{max-width:760px;margin:auto;padding:12px 12px 44px}
+header{background:#111827;color:#fff;border-radius:20px;padding:18px;margin-bottom:12px}
+h1{margin:0;font-size:25px}h2{margin:0 0 10px}h3{margin:16px 0 8px}.sub{font-size:13px;opacity:.78;margin-top:4px}
+.card{background:#fff;border-radius:18px;padding:15px;margin:12px 0;box-shadow:0 2px 14px #0000000b}
+.row{display:flex;gap:8px;flex-wrap:wrap}.grow{flex:1;min-width:120px}
+button,.filelabel{border:0;border-radius:13px;padding:13px 14px;font-weight:750;font-size:15px}
+button{cursor:pointer}.primary{background:#111827;color:#fff;width:100%;margin-top:9px}.secondary{background:#e5e7eb;color:#111827}
+.hot{background:#fee2e2;border-radius:12px;padding:11px}.check{background:#fef3c7;border-radius:12px;padding:11px}.low{background:#e5e7eb;border-radius:12px;padding:11px}
+.type.active{outline:3px solid #111827;background:#fff}.filelabel{display:block;text-align:center;background:#e5e7eb;margin-top:8px}
+input[type=file]{display:none}input[type=text],input[type=password]{width:100%;padding:12px;border:1px solid #cfd5dc;border-radius:11px;margin:6px 0}
+.preview{width:100%;max-height:330px;object-fit:contain;border-radius:13px;background:#f2f3f5}.previewgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.metric{flex:1;min-width:105px;background:#f7f8fa;border-radius:13px;padding:12px}.metric b{display:block;font-size:20px;margin-top:2px}
+.small{font-size:12px;color:#6b7280}.muted{color:#6b7280}.hidden{display:none}.spinner{text-align:center;padding:24px}
+.notice{background:#fff7ed;border:1px solid #fed7aa;border-radius:13px;padding:12px}.success{background:#ecfdf5;border:1px solid #a7f3d0;border-radius:13px;padding:12px}
+table{width:100%;border-collapse:collapse}td{padding:8px 4px;border-bottom:1px solid #eee;vertical-align:top}.right{text-align:right}
+a.link{display:block;text-decoration:none;background:#2563eb;color:#fff;text-align:center;padding:12px;border-radius:12px;font-weight:750;margin-top:8px}
+.badge{display:inline-block;padding:5px 9px;border-radius:999px;font-weight:750;font-size:12px}.gray{background:#e5e7eb}.red{background:#fee2e2}.yellow{background:#fef3c7}
+#collectionList .item{padding:12px 0;border-bottom:1px solid #eee}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+<h1>🔎 Card & Coin Scout <span style="font-size:12px;opacity:.7">V2</span></h1>
+<div class="sub">Front + back scanning • condition check • error/variation flags • sold-comps research</div>
+</header>
+
+<div id="setup" class="card">
+<h2>One-time setup</h2>
+<p class="small">For this personal prototype, your API key is stored only in this phone's browser storage. Do not share the deployed app with other people while using your personal key.</p>
+<input id="key" type="password" placeholder="OpenAI API key">
+<button id="saveKey" class="secondary">Save on This Phone</button>
+</div>
+
+<div class="card">
+<h2>1. What are you scanning?</h2>
+<div class="row">
+<button id="cardBtn" class="grow type active">⚾ Baseball Card</button>
+<button id="coinBtn" class="grow type">🪙 U.S. Coin</button>
+</div>
+</div>
+
+<div class="card">
+<h2>2. Photograph both sides</h2>
+<div class="row">
+<label class="filelabel grow" for="front">📷 Front / Obverse</label>
+<label class="filelabel grow" for="back">📷 Back / Reverse</label>
+<input id="front" type="file" accept="image/*" capture="environment">
+<input id="back" type="file" accept="image/*" capture="environment">
+</div>
+<div id="photos" class="previewgrid hidden">
+<img id="frontPreview" class="preview">
+<img id="backPreview" class="preview">
+</div>
+<div class="small" style="margin-top:8px">For cards, front + back dramatically improves exact-set identification. For coins, use obverse + reverse.</div>
+<button id="scan" class="primary">🔍 Identify, Analyze & Research</button>
+</div>
+
+<div id="result" class="card hidden"></div>
+
+<div class="card">
+<h2>📚 Collection</h2>
+<div class="row">
+<div class="metric"><span class="small">Scans</span><b id="count">0</b></div>
+<div class="metric"><span class="small">Typical total</span><b id="total">$0.00</b></div>
+</div>
+<div id="collectionList" style="margin-top:8px"></div>
+<button id="clear" class="secondary" style="margin-top:10px">Clear Collection</button>
+</div>
+</div>
+
+<script>
+const MODEL="gpt-5.6-luna";
+let kind="Baseball card", frontData=null, backData=null;
+
+const $=x=>document.getElementById(x);
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function money(x){return Number.isFinite(Number(x))?"$"+Number(x).toFixed(2):"—"}
+function soldUrl(q){return "https://www.ebay.com/sch/i.html?_nkw="+encodeURIComponent(q)+"&LH_Sold=1&LH_Complete=1"}
+function load(){return JSON.parse(localStorage.getItem("ccs_v2")||"[]")}
+function save(a){localStorage.setItem("ccs_v2",JSON.stringify(a))}
+function refreshCollection(){
+ const a=load();$("count").textContent=a.length;
+ const total=a.reduce((n,x)=>n+(Number(x.raw_value_typical)||0),0);$("total").textContent=money(total);
+ $("collectionList").innerHTML=a.length?a.slice(0,50).map((x,i)=>`
+ <div class="item"><b>${esc(x.identification)}</b><br>
+ <span class="small">${esc(x.kind)} · ${esc(x.triage||"CHECK")} · ${money(x.raw_value_typical)} · ${esc(x.date)}</span></div>`).join(""):'<div class="small">No scans saved yet.</div>';
+}
+refreshCollection();
+
+const saved=localStorage.getItem("ccs_key");
+if(saved){$("key").value=saved;$("setup").classList.add("hidden")}
+$("saveKey").onclick=()=>{const k=$("key").value.trim();if(!k)return alert("Paste the API key.");localStorage.setItem("ccs_key",k);$("setup").classList.add("hidden");alert("Saved on this phone.");};
+
+$("cardBtn").onclick=()=>{kind="Baseball card";$("cardBtn").classList.add("active");$("coinBtn").classList.remove("active")};
+$("coinBtn").onclick=()=>{kind="U.S. coin";$("coinBtn").classList.add("active");$("cardBtn").classList.remove("active")};
+
+function attach(inputId, previewId){
+ $(inputId).onchange=()=>{
+   const f=$(inputId).files[0];if(!f)return;
+   const r=new FileReader();r.onload=()=>{if(inputId==="front")frontData=r.result;else backData=r.result;$(previewId).src=r.result;$("photos").classList.remove("hidden")};r.readAsDataURL(f);
+ };
+}
+attach("front","frontPreview");attach("back","backPreview");
+
+$("clear").onclick=()=>{if(confirm("Delete all saved scans?")){save([]);refreshCollection()}};
+
+function promptFor(){
+ if(kind==="Baseball card") return `You are a baseball-card identification and triage specialist.
+Use BOTH images when present. Read all visible text. Determine the exact year, manufacturer, set, card number, player, team, rookie/prospect status, insert/parallel/refractor/variation, and any visible authenticity concerns. Analyze visible centering, corners, edges and surface conservatively. Do not assign a professional grade from photos alone.
+Flag anything that could make the card substantially more valuable.`;
+ return `You are a U.S.-coin identification and variety/condition triage specialist.
+Use BOTH images when present. Read date and mint mark. Determine denomination, design/type, composition if inferable, and check for possible doubled dies, off-center strike, clipped planchet, die cracks, unusual lettering/numbers, missing details, or other varieties. Do not call an error genuine from photos alone; distinguish "possible" from "confirmed". Assess visible wear conservatively.`;
+}
+
+$("scan").onclick=async()=>{
+ const key=localStorage.getItem("ccs_key")||$("key").value.trim();
+ if(!key){$("setup").classList.remove("hidden");alert("Add your OpenAI API key first.");return}
+ if(!frontData&&!backData){alert("Take at least one photo. For best results, use both sides.");return}
+ $("result").classList.remove("hidden");$("result").innerHTML='<div class="spinner">🔎 Examining both sides and building the valuation report…</div>';
+ const schema=`Return ONLY valid JSON:
+{
+ "identification":"exact best identification",
+ "year":"year or unknown",
+ "set_or_type":"set/type",
+ "manufacturer_or_mint":"manufacturer or mint",
+ "number_or_denomination":"card number or denomination",
+ "subject":"player or coin design",
+ "variation_or_error":"none / possible issue / likely issue",
+ "confidence":0,
+ "condition_observations":["..."],
+ "centering_or_strike_notes":["..."],
+ "raw_value_low":0,
+ "raw_value_typical":0,
+ "raw_value_high":0,
+ "graded_value_note":"...",
+ "grading_recommendation":"NO / MAYBE / INVESTIGATE",
+ "why_it_matters":"...",
+ "triage":"LOW/CHECK/HOT",
+ "search_query":"exact search phrase for sold listings",
+ "verification_steps":["specific things the owner should photograph/check next"]
+}
+Use numeric USD values only for the three raw value fields. If price cannot be responsibly estimated, use null.`;
+
+ const contents=[{type:"input_text",text:promptFor()+"\n"+schema}];
+ if(frontData)contents.push({type:"input_image",image_url:frontData});
+ if(backData)contents.push({type:"input_image",image_url:backData});
+
+ try{
+   const r=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},body:JSON.stringify({model:MODEL,input:[{role:"user",content:contents}]})});
+   if(!r.ok)throw new Error(await r.text());
+   const d=await r.json();let t=(d.output_text||"").trim().replace(/^```json\s*/,"").replace(/```$/,"").trim();const x=JSON.parse(t);
+   const badge=x.triage==="HOT"?'<span class="badge red">🔥 HOT</span>':x.triage==="CHECK"?'<span class="badge yellow">🟡 CHECK</span>':'<span class="badge gray">⚪ LOW</span>';
+   $("result").innerHTML=`
+   <h2>${esc(x.identification)}</h2>
+   <div class="row"><div class="metric"><span class="small">Confidence</span><b>${esc(x.confidence)}%</b></div><div class="metric"><span class="small">Priority</span><b>${badge}</b></div></div>
+   <table style="margin-top:12px">
+   <tr><td>Year</td><td class="right"><b>${esc(x.year)}</b></td></tr>
+   <tr><td>Set / Type</td><td class="right"><b>${esc(x.set_or_type)}</b></td></tr>
+   <tr><td>Manufacturer / Mint</td><td class="right"><b>${esc(x.manufacturer_or_mint)}</b></td></tr>
+   <tr><td>Card # / Denomination</td><td class="right"><b>${esc(x.number_or_denomination)}</b></td></tr>
+   <tr><td>Subject / Design</td><td class="right"><b>${esc(x.subject)}</b></td></tr>
+   <tr><td>Variation / Error</td><td class="right"><b>${esc(x.variation_or_error)}</b></td></tr></table>
+   <h3>💰 Raw value estimate</h3>
+   <div class="row"><div class="metric"><span class="small">Low</span><b>${money(x.raw_value_low)}</b></div><div class="metric"><span class="small">Typical</span><b>${money(x.raw_value_typical)}</b></div><div class="metric"><span class="small">High</span><b>${money(x.raw_value_high)}</b></div></div>
+   <h3>👀 Condition / strike</h3><p>${esc((x.condition_observations||[]).join(" "))}</p><p>${esc((x.centering_or_strike_notes||[]).join(" "))}</p>
+   <p><b>Grading:</b> ${esc(x.grading_recommendation)}<br>${esc(x.graded_value_note)}</p>
+   <h3>🚨 Why it matters</h3><p>${esc(x.why_it_matters)}</p>
+   <div class="notice"><b>Next checks:</b><ul>${(x.verification_steps||[]).map(s=>"<li>"+esc(s)+"</li>").join("")}</ul></div>
+   <a class="link" target="_blank" href="${soldUrl(x.search_query||x.identification)}">📈 See eBay SOLD / COMPLETED listings</a>
+   <button id="saveItem" class="primary">💾 Save to Collection</button>
+   <div class="small" style="margin-top:10px">AI estimates are not professional appraisals. Rare varieties, errors and high-grade cards/coins should be verified before assigning a high value.</div>`;
+   $("saveItem").onclick=()=>{const a=load();a.unshift({date:new Date().toLocaleString(),kind,...x});save(a);refreshCollection();$("saveItem").textContent="✓ Saved";};
+ }catch(e){$("result").innerHTML='<div class="notice"><b>Scan failed.</b><br>'+esc(e.message)+'</div>'}
+};
+</script>
+</body>
+</html>
