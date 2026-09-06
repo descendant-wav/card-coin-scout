@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="theme-color" content="#111827">
+<title>Coin Scout V7 — Treasure Filter</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#eef0f3;color:#111827;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:760px;margin:auto;padding:14px}
+.card{background:#fff;border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 2px 12px #0001}
+h1{font-size:28px;line-height:1.05;margin:0 0 6px}.sub,.muted,.note{color:#667085}
+.photos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.photo{border:2px dashed #cfd4dc;border-radius:14px;padding:9px;text-align:center;background:#fafafa}
+.photo label{display:block;font-weight:900;cursor:pointer;padding:7px}
+.photo input{display:none}.photo img{width:100%;height:170px;object-fit:contain;display:none;border-radius:10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-weight:800;margin:10px 0 6px}
+input,select,button{width:100%;font:inherit;border-radius:12px;padding:13px;border:1px solid #cdd2da}
+button{background:#111827;color:#fff;border:0;font-weight:900;margin-top:10px;min-height:50px}
+.secondary{background:#e5e7eb;color:#111827}
+.yearbox{font-size:24px;font-weight:800;text-align:center;border:2px solid #9ca3af}
+.yearhint{display:flex;justify-content:space-between;gap:8px;margin-top:7px}.yearhint button{min-height:42px;padding:8px;margin:0;background:#e5e7eb;color:#111827}
+.status{padding:13px;border-radius:12px;background:#f3f4f6;margin-top:10px}
+.ok{background:#ecfdf5}.warn{background:#fff7ed}
+.candidate{display:flex;justify-content:space-between;gap:10px;padding:9px 10px;background:#f8fafc;border-radius:9px;margin:5px 0}
+.big{font-size:25px;font-weight:950}.row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #0001}
+.row:last-child{border:0}.common{background:#ecfdf5}.check{background:#fffbeb}.melt{background:#eff6ff}.hot{background:#fef2f2}
+.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#e5e7eb;font-size:12px;font-weight:900}
+ul{padding-left:22px}.scan-title{font-weight:900;font-size:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+<h1>🪙 Coin Scout V7</h1>
+<div class="sub">Treasure Filter — visual coin family + fast human date entry + local U.S. coin screening.</div>
+
+<div class="photos">
+<div class="photo">
+<label for="front">📷 FRONT / OBVERSE</label>
+<input id="front" type="file" accept="image/*" capture="environment">
+<img id="fp">
+</div>
+<div class="photo">
+<label for="back">📷 BACK / REVERSE</label>
+<input id="back" type="file" accept="image/*" capture="environment">
+<img id="bp">
+</div>
+</div>
+
+<button id="visualBtn">👁️ Identify Coin Type — FREE</button>
+<div id="visualStatus" class="status" style="display:none"></div>
+<div id="visualResults" style="display:none"></div>
+
+<div class="card" style="padding:14px;background:#f8fafc">
+<div class="scan-title">🎯 Step 2 — Tell Scout the date</div>
+<div class="note">The date is the one thing we're not going to fake-read from a blurry coin photo. Type the visible year here. Scout does the treasure math automatically.</div>
+<label for="year">YEAR</label>
+<input id="year" class="yearbox" inputmode="numeric" maxlength="4" placeholder="1976">
+<div class="yearhint">
+<button id="minus">− 1</button><button id="plus">+ 1</button>
+</div>
+</div>
+
+<div class="grid">
+<div>
+<label>Denomination</label>
+<select id="denom">
+<option value="">Unknown</option><option>Cent</option><option>Nickel</option><option>Dime</option><option>Quarter</option><option>Half Dollar</option><option>Dollar</option>
+</select>
+</div>
+<div>
+<label>Mint mark</label>
+<select id="mint">
+<option value="">Unknown / none</option><option>P</option><option>D</option><option>S</option><option>W</option><option>O</option><option>CC</option><option>Other / uncertain</option>
+</select>
+</div>
+</div>
+
+<label for="silver">Silver spot ($/oz)</label>
+<input id="silver" type="number" step=".01" value="66.19">
+
+<button id="screen">🔎 SCREEN FOR TREASURE — FREE</button>
+<button id="clear" class="secondary">Clear / Next Coin</button>
+</div>
+
+<div id="out" class="card" style="display:none"></div>
+
+<div class="card">
+<b>V7 philosophy</b>
+<ul>
+<li>AI/vision helps answer <b>“What kind of coin is this?”</b></li>
+<li>You answer <b>“What year does it say?”</b> when the date is visible.</li>
+<li>The local rules answer <b>“Is this worth stopping for?”</b></li>
+<li>Nothing gets rejected just because the visual model is uncertain.</li>
+</ul>
+<div class="note">For bulk sorting, this is intentionally fast: identify → enter year → screen → keep/check or move on.</div>
+</div>
+
+</div>
+
+<script type="module">
+import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
+
+const $=id=>document.getElementById(id);
+let frontFile=null,backFile=null,model=null;
+
+function wire(id,img,setter){
+ $(id).addEventListener("change",()=>{
+  const f=$(id).files?.[0];setter(f||null);
+  if(!f){img.style.display="none";return}
+  const r=new FileReader();r.onload=e=>{img.src=e.target.result;img.style.display="block"};r.readAsDataURL(f);
+ });
+}
+wire("front",$("fp"),f=>frontFile=f);wire("back",$("bp"),f=>backFile=f);
+
+const labels=[
+"a U.S. Lincoln cent","a U.S. Wheat cent","a U.S. Indian Head cent",
+"a U.S. Jefferson nickel","a U.S. Buffalo nickel",
+"a U.S. Mercury dime","a U.S. Roosevelt dime","a U.S. Barber dime",
+"a U.S. Standing Liberty quarter","a U.S. Washington quarter","a U.S. Barber quarter",
+"a U.S. Walking Liberty half dollar","a U.S. Franklin half dollar","a U.S. Kennedy half dollar",
+"a U.S. Morgan dollar","a U.S. Peace dollar","a U.S. Eisenhower dollar",
+"a U.S. Susan B. Anthony dollar","a modern U.S. dollar coin"
+];
+const map={
+"Cent":["a U.S. Lincoln cent","a U.S. Wheat cent","a U.S. Indian Head cent"],
+"Nickel":["a U.S. Jefferson nickel","a U.S. Buffalo nickel"],
+"Dime":["a U.S. Mercury dime","a U.S. Roosevelt dime","a U.S. Barber dime"],
+"Quarter":["a U.S. Standing Liberty quarter","a U.S. Washington quarter","a U.S. Barber quarter"],
+"Half Dollar":["a U.S. Walking Liberty half dollar","a U.S. Franklin half dollar","a U.S. Kennedy half dollar"],
+"Dollar":["a U.S. Morgan dollar","a U.S. Peace dollar","a U.S. Eisenhower dollar","a U.S. Susan B. Anthony dollar","a modern U.S. dollar coin"]
+};
+
+async function getModel(){
+ if(!model){
+  $("visualStatus").style.display="block";
+  $("visualStatus").textContent="Loading the browser vision model… first run can take a little while.";
+  model=await pipeline("zero-shot-image-classification","Xenova/clip-vit-base-patch32",{dtype:"q8"});
+ }
+ return model;
+}
+function url(f){return URL.createObjectURL(f)}
+
+$("visualBtn").onclick=async()=>{
+ const f=frontFile||backFile;if(!f){alert("Take a front photo first.");return}
+ $("visualResults").style.display="none";
+ try{
+  const m=await getModel(),u=url(f),r=await m(u,labels);URL.revokeObjectURL(u);
+  const top=r.slice(0,7),best=r[0];
+  $("visualResults").innerHTML="<b>Visual candidates</b>"+top.map((x,i)=>`<div class="candidate"><span>${i+1}. ${x.label}</span><b>${(x.score*100).toFixed(1)}%</b></div>`).join("");
+  $("visualResults").style.display="block";
+  const den=Object.entries(map).find(([d,ls])=>ls.includes(best.label))?.[0]||"";
+  if(den&&!$("denom").value)$("denom").value=den;
+  $("visualStatus").innerHTML=`<b>Best visual match: ${best.label}</b><br><span class="note">Use this to choose the denomination/type. Do not treat the percentage as an exact identification probability.</span>`;
+ }catch(e){
+  console.error(e);
+  $("visualStatus").innerHTML=`<b>Visual scan unavailable.</b><br><span class="note">${String(e?.message||e)}<br>You can still use the manual treasure screen.</span>`;
+ }
+};
+
+$("year").addEventListener("input",e=>{e.target.value=e.target.value.replace(/\D/g,"").slice(0,4)});
+$("minus").onclick=()=>{let y=parseInt($("year").value)||0;if(y>0)$("year").value=Math.max(1,y-1)};
+$("plus").onclick=()=>{let y=parseInt($("year").value)||0;if(y>0)$("year").value=y+1};
+
+const oz={Dime:.07234,Quarter:.18084,"Half Dollar":.36169,Dollar:.77344};
+function money(x){return "$"+x.toFixed(2)}
+
+function screenCoin(y,d,m,s){
+ let comp="Not determined",tri="CHECK",silverPct=0,flags=[],notes=[];
+ if(!y||!d){return{comp,tri,silverPct,melt:0,flags,notes:["Enter a year and denomination first."]}}
+
+ if(d==="Cent"){
+  if(y<1857){comp="Early copper cent — exact type needed";tri="HOT"}
+  else if(y<=1864){comp="Copper-nickel / bronze transition era";tri="CHECK"}
+  else if(y<=1942){comp="Bronze";tri="CHECK"}
+  else if(y===1943){comp="Steel (zinc-coated)";tri="HOT";flags.push("Check for a genuine 1943 steel cent and wrong-metal possibilities.")}
+  else if(y<=1981){comp="Bronze";tri="CHECK"}
+  else if(y===1982){comp="Transition year — bronze and copper-plated zinc both exist";tri="CHECK";flags.push("1982 requires a closer weight/diagnostic check.")}
+  else{comp="Copper-plated zinc";tri="COMMON"}
+  if(y===1909){tri="HOT";flags.push("1909: check mint mark and VDB variety.")}
+  if(y===1914&&m==="D"){tri="HOT";flags.push("1914-D key date — authenticate.")}
+  if(y===1922&&m==="D"){tri="HOT";flags.push("1922-D: check carefully for the No D variety.")}
+  if(y===1931&&m==="S"){tri="HOT";flags.push("1931-S key date.")}
+  if(y===1955){tri="HOT";flags.push("Check for the 1955 doubled-die obverse.")}
+  if(y===1944){tri="CHECK";flags.push("Inspect for a possible 1944 steel/wrong-metal error.")}
+ }else if(d==="Nickel"){
+  if(y<1938){comp="Older nickel issue — identify exact type";tri="CHECK"}
+  else if(y<=1941){comp="Copper-nickel";tri="COMMON"}
+  else if(y<=1945){comp="Wartime Jefferson — 35% silver possible";tri="CHECK";flags.push("Large P, D or S above Monticello is the wartime silver diagnostic.");if(["P","D","S"].includes(m)){tri="MELT";silverPct=35}}
+  else{comp="Copper-nickel";tri="COMMON"}
+ }else if(d==="Dime"){
+  if(y<=1964){comp="90% silver";tri="MELT";silverPct=90}else{comp="Copper-nickel clad";tri="COMMON"}
+  if(y===1916&&m==="D"){tri="HOT";flags.push("1916-D Mercury dime is a major key date.")}
+  if(y===1942){tri="HOT";flags.push("Check the 1942/1 Mercury dime overdate.")}
+ }else if(d==="Quarter"){
+  if(y<=1964){comp="90% silver";tri="MELT";silverPct=90}else{comp="Copper-nickel clad";tri="COMMON"}
+  if(y===1916){tri="HOT";flags.push("1916 Standing Liberty quarter is a major key date.")}
+  if(y===1932&&(m==="D"||m==="S")){tri="HOT";flags.push("1932-D/S Washington quarter key dates.")}
+  if(y===1975||y===1976)notes.push("Bicentennial circulation quarters are clad. Some special collector issues were silver; verify the exact issue before selling as melt.")
+ }else if(d==="Half Dollar"){
+  if(y<=1964){comp="90% silver";tri="MELT";silverPct=90}
+  else if(y<=1970){comp="40% silver";tri="MELT";silverPct=40}
+  else{comp="Copper-nickel clad";tri="COMMON"}
+  if(y===1916){tri="HOT";flags.push("1916 Walking Liberty half is an important first-year issue.")}
+  if(y===1975||y===1976)notes.push("Standard 1976 circulation Kennedy halves are clad. Some 1976-S collector issues are 40% silver.")
+ }else if(d==="Dollar"){
+  if(y>=1878&&y<=1921){comp="90% silver — Morgan dollar";tri="MELT";silverPct=90;flags.push("Collector value can be well above melt.")}
+  else if(y>=1921&&y<=1935){comp="90% silver — Peace dollar";tri="MELT";silverPct=90;flags.push("Collector value can be well above melt.")}
+  else if(y>=1971&&y<=1978){comp="Usually clad — Eisenhower dollar";tri="COMMON";flags.push("Some collector issues are 40% silver; identify the exact issue.")}
+  else if(y>=1979&&y<=1999){comp="Clad — Susan B. Anthony dollar";tri="COMMON"}
+  else if(y>=2000){comp="Modern dollar alloy";tri="COMMON"}
+  else{comp="Older dollar — exact type needed";tri="CHECK"}
+ }
+
+ let melt=0;
+ if(silverPct&&oz[d]&&s>0){
+  melt=(d==="Half Dollar"&&silverPct===40)?0.1479*s:oz[d]*s*silverPct/90;
+ }
+ return{comp,tri,silverPct,melt,flags,notes}
+}
+
+$("screen").onclick=()=>{
+ const y=parseInt($("year").value),d=$("denom").value,m=$("mint").value,s=parseFloat($("silver").value)||0;
+ const r=screenCoin(y,d,m,s);
+ const cls=r.tri==="COMMON"?"common":r.tri==="MELT"?"melt":r.tri==="HOT"?"hot":"check";
+ const badge={COMMON:"🟢 COMMON",CHECK:"🟡 CHECK",MELT:"🔵 MELT",HOT:"🔴 HOT"}[r.tri];
+ let h=`<div class="big">${badge}</div>
+ <div class="row"><b>Type</b><span>${d||"Unknown"}</span></div>
+ <div class="row"><b>Year</b><span>${y||"Not entered"}</span></div>
+ <div class="row"><b>Mint</b><span>${m||"Unknown / none"}</span></div>
+ <div class="row"><b>Composition</b><span>${r.comp}</span></div>`;
+ if(r.silverPct)h+=`<div class="row"><b>Silver</b><span>${r.silverPct}%</span></div>`;
+ h+=`<div class="row"><b>Estimated melt floor</b><span>${money(r.melt)}</span></div>`;
+ if(r.flags.length)h+=`<h3>🚩 STOP & CHECK</h3><ul>${r.flags.map(x=>`<li>${x}</li>`).join("")}</ul>`;
+ if(r.notes.length)h+=`<h3>Notes</h3><ul>${r.notes.map(x=>`<li>${x}</li>`).join("")}</ul>`;
+ if(r.tri==="COMMON")h+=`<p class="note">No major treasure trigger found from the information entered. For a bulk pile, this is the “move on” result.</p>`;
+ if(r.tri==="MELT")h+=`<p><b>Don't throw this one back.</b> It has intrinsic precious-metal value based on the entered year/type.</p>`;
+ if(r.tri==="HOT")h+=`<p><b>Set this one aside.</b> It has a key-date, variety, or error trigger worth researching.</p>`;
+ $("out").className="card "+cls;$("out").innerHTML=h;$("out").style.display="block";$("out").scrollIntoView({behavior:"smooth"});
+};
+
+$("clear").onclick=()=>location.reload();
+</script>
+</body>
+</html>
