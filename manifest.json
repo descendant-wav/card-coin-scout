@@ -1,9 +1,15 @@
 {
-  "name":"Card & Coin Scout V2",
-  "short_name":"Card Scout",
-  "start_url":"./",
-  "display":"standalone",
-  "background_color":"#eef1f5",
-  "theme_color":"#111827",
-  "description":"Scan baseball cards and U.S. coins with front/back photos, condition checks, valuation and sold-comps research."
+  "name": "Coin Scout — Treasure Filter",
+  "short_name": "Coin Scout",
+  "description": "Fast U.S. coin treasure filter for bulk sorting.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef0f3",
+  "theme_color": "#111827",
+  "icons": [
+    {"src":"./icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"./icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
 }
