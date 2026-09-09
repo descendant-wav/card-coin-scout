@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="theme-color" content="#111827">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<title>Coin Scout — Treasure Filter V12</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#eef0f3;color:#111827;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:760px;margin:auto;padding:12px}
+.card{background:#fff;border-radius:18px;padding:15px;margin:11px 0;box-shadow:0 2px 12px #0001}
+h1{font-size:27px;line-height:1.05;margin:0 0 5px}.sub,.muted,.note{color:#667085}
+.photos{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.photo{border:2px dashed #cfd4dc;border-radius:14px;padding:8px;text-align:center;background:#fafafa}
+.photo label{display:block;font-weight:900;cursor:pointer;padding:7px}.photo input{display:none}
+.photo img{width:100%;height:145px;object-fit:contain;display:none;border-radius:9px;background:#fff;min-height:40px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+label{display:block;font-weight:800;margin:9px 0 5px}
+input,select,button{width:100%;font:inherit;border-radius:11px;padding:12px;border:1px solid #cdd2da}
+button{background:#111827;color:#fff;border:0;font-weight:900;margin-top:9px;min-height:48px}
+.secondary{background:#e5e7eb;color:#111827}
+.yearbox{font-size:24px;font-weight:800;text-align:center;border:2px solid #9ca3af}
+.yearhint{display:flex;gap:7px;margin-top:7px}.yearhint button{min-height:40px;padding:7px;margin:0;background:#e5e7eb;color:#111827}
+.status{padding:12px;border-radius:11px;background:#f3f4f6;margin-top:9px}
+.candidate{display:flex;justify-content:space-between;gap:8px;padding:8px 9px;background:#f8fafc;border-radius:8px;margin:4px 0;font-size:14px}
+.big{font-size:24px;font-weight:950}.row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #0001}.row:last-child{border:0}
+.common{background:#ecfdf5}.check{background:#fffbeb}.melt{background:#eff6ff}.hot{background:#fef2f2}
+.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#e5e7eb;font-size:12px;font-weight:900}
+.small{font-size:12px}.warning{padding:11px;border-radius:11px;background:#fff7ed;margin-top:9px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}.stat{padding:9px 4px;border-radius:10px;text-align:center;background:#f3f4f6}.stat b{display:block;font-size:19px}
+.sessionRow{display:grid;grid-template-columns:1.15fr .6fr .55fr .75fr;gap:5px;padding:7px 0;border-bottom:1px solid #0001;font-size:12px}
+.quickYear{padding:6px 2px!important;min-height:37px!important;margin:0!important}
+details{margin-top:8px}summary{font-weight:900;cursor:pointer}
+.checkgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.checkitem{padding:10px;border:1px solid #ddd;border-radius:11px;background:#fafafa}
+.linkbtn{display:block;text-align:center;text-decoration:none}
+
+.installBar{display:none;background:#111827;color:#fff;border-radius:14px;padding:10px 12px;margin:10px 0;font-weight:800}
+.installBar button{width:auto;min-height:40px;margin:0 0 0 8px;padding:8px 12px;background:#fff;color:#111827}
+.actionRow{display:grid;grid-template-columns:1fr 1fr;gap:8px}.actionRow button{margin-top:9px}
+.setAside{background:#7c3aed!important}.danger{background:#991b1b!important}
+.appBadge{display:inline-block;padding:4px 8px;border-radius:999px;background:#dcfce7;color:#166534;font-size:11px;font-weight:900;margin-left:5px}
+@media(max-width:520px){.stats{grid-template-columns:repeat(2,1fr)}.photos{gap:7px}.photo img{height:125px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="card">
+<h1>🪙 Coin Scout <span class="appBadge">TONIGHT EDITION • V12.5 OCR</span></h1>
+<div class="sub">Fast bulk treasure filter. No API required. Scout can now <b>read the year + mint locally from your photos</b> and screen the coin for you.</div><div class="warning"><b>💰 BULK HUNT:</b> <b>HOT</b> = stop. <b>CHECK</b> = inspect. <b>MELT</b> = keep. <b>COMMON</b> = move on. Scout is a filter, not an appraisal.</div>
+<div id="installBar" class="installBar">📱 Make Coin Scout an app on this phone <button id="installBtn">INSTALL</button></div>
+
+<div class="photos">
+<div class="photo"><label for="front">📷 FRONT</label><input id="front" type="file" accept="image/*" capture="environment"><img id="fp"></div>
+<div class="photo"><label for="back">📷 BACK</label><input id="back" type="file" accept="image/*" capture="environment"><img id="bp"></div>
+</div>
+
+<div class="card" style="padding:13px;background:#f8fafc;margin-top:10px">
+<div style="font-weight:950;font-size:20px">1️⃣ Choose the denomination</div>
+<div class="note" style="margin:5px 0 8px">Pick what the coin actually is. Scout will never override your choice. Once selected, Scout can read the date/mint from the photos.</div>
+<div class="checkgrid">
+<button class="secondary denomBtn" data-d="Cent">🟤 Cent</button>
+<button class="secondary denomBtn" data-d="Nickel">⚪ Nickel</button>
+<button class="secondary denomBtn" data-d="Dime">⚪ Dime</button>
+<button class="secondary denomBtn" data-d="Quarter">⚪ Quarter</button>
+<button class="secondary denomBtn" data-d="Half Dollar">⚪ Half Dollar</button>
+<button class="secondary denomBtn" data-d="Dollar">🪙 Dollar</button>
+</div>
+<div id="denomChosen" class="status" style="display:none;margin-top:9px"></div>
+</div>
+
+<div class="actionRow">
+<button id="visualBtn">👁️ Analyze Design — FREE</button>
+<button id="ocrBtn" class="secondary">🔤 READ YEAR + MINT — FREE</button>
+</div>
+<div id="visualStatus" class="status" style="display:none"></div>
+<div id="visualResults" style="display:none"></div>
+<div id="ocrStatus" class="status" style="display:none"></div>
+
+<div class="card" style="padding:13px;background:#f8fafc">
+<div style="font-weight:900;font-size:18px">🎯 Date + mint</div>
+<div class="note">Scout will try to read these from your photos using local OCR. <b>If it is unsure, it leaves the field alone or marks it CHECK.</b> You can always correct the fields yourself.</div>
+<label for="year">YEAR <span class="pill">SCOUT OCR + MANUAL BACKUP</span></label>
+<input id="year" class="yearbox" inputmode="numeric" maxlength="4" placeholder="1976">
+<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-top:6px">
+<button class="secondary quickYear" data-y="1909">1909</button><button class="secondary quickYear" data-y="1914">1914</button>
+<button class="secondary quickYear" data-y="1922">1922</button><button class="secondary quickYear" data-y="1931">1931</button>
+<button class="secondary quickYear" data-y="1943">1943</button><button class="secondary quickYear" data-y="1955">1955</button>
+</div>
+<div class="yearhint"><button id="minus">− 1</button><button id="plus">+ 1</button></div>
+
+<div class="grid">
+<div><label>Denomination</label><select id="denom"><option value="">Unknown</option><option>Cent</option><option>Nickel</option><option>Dime</option><option>Quarter</option><option>Half Dollar</option><option>Dollar</option></select></div>
+<div><label>Mint mark <span class="pill">OCR + MANUAL BACKUP</span></label><select id="mint"><option value="">Unknown / none</option><option>P</option><option>D</option><option>S</option><option>W</option><option>O</option><option>CC</option><option>Other / uncertain</option></select></div>
+</div>
+</div>
+
+<details>
+<summary>🧪 Optional physical checks</summary>
+<div class="note" style="margin:7px 0">These checks improve triage but never authenticate a rare coin by themselves.</div>
+<div class="checkgrid">
+<div class="checkitem"><b>Edge</b><select id="edge"><option value="">Unknown</option><option value="copper">Copper-colored stripe visible</option><option value="no-copper">No copper stripe / solid-looking edge</option></select></div>
+<div class="checkitem"><b>Weight (grams)</b><input id="weight" inputmode="decimal" placeholder="optional"></div>
+</div>
+</details>
+
+<label for="silver">Silver spot ($/oz)</label>
+<input id="silver" type="number" step=".01" value="66.19">
+<div class="note small">Manual reference price only. Update it whenever you want; Scout does not fetch a live price.</div>
+
+<button id="screen">🔎 SCREEN FOR TREASURE — FREE</button>
+<div class="status" style="margin-top:8px"><b>⚡ BULK MODE:</b> Take front + back photos, tap <b>READ YEAR + MINT</b>, then SCREEN. If OCR misses, type the year/mint and keep moving.</div><div id="liveHint" class="note small" style="margin-top:7px">Enter year + denomination to preview the current result.</div>
+<div class="actionRow">
+<button id="clear" class="secondary">➡️ NEXT COIN</button>
+<button id="setAside" class="setAside">⭐ Set Aside Current</button>
+</div>
+</div>
+
+<div id="out" class="card" style="display:none"></div>
+
+<div class="card">
+<b>📊 Session Summary</b>
+<div class="stats"><div class="stat"><b id="nCommon">0</b>COMMON</div><div class="stat"><b id="nMelt">0</b>MELT</div><div class="stat"><b id="nCheck">0</b>CHECK</div><div class="stat"><b id="nHot">0</b>HOT</div></div>
+<div class="row"><b>Silver melt tracked</b><span id="sessionMelt">$0.00</span></div>
+<div class="row"><b>Coins screened</b><span id="sessionTotal">0</span></div>
+</div>
+
+<div class="card">
+<b>📋 Session Log</b>
+<div id="sessionLog" class="muted" style="margin-top:7px">No coins screened yet.</div>
+<div class="actionRow">
+<button id="exportLog" class="secondary">⬇️ Export Tonight</button>
+<button id="clearLog" class="secondary danger">Clear Log</button>
+</div>
+<div id="setAsideLog" style="margin-top:10px"></div>
+</div>
+
+<div class="card">
+<b>🚦 How to use V12.5 — Coin-Located OCR + Android Photo Fix Edition</b>
+<ol>
+<li>Photograph the coin <b>close and sharp</b>. Scout gives design suggestions, but never changes the denomination for you.</li>
+<li>Tap the correct denomination.</li>
+<li>Tap <b>READ YEAR + MINT</b>. Scout finds the coin in the photo, then uses local browser OCR on focused date/mint regions. Correct anything it gets wrong.</li>
+<li>Run <b>SCREEN FOR TREASURE</b>.</li>
+<li><b>COMMON</b> → move on. <b>MELT</b> → keep. <b>CHECK</b> → hold. <b>HOT</b> → isolate and research.</li>
+</ol>
+<div class="warning"><b>Rule:</b> a rare date/error result is a stop sign, not a price guarantee. Authenticate important coins before selling.</div>
+</div>
+
+</div>
+
+<script type="module">
+import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
+const $=id=>document.getElementById(id);
+function loadSaved(){
+ try{session=JSON.parse(localStorage.getItem("coinScoutSession")||"[]")||[];setAside=JSON.parse(localStorage.getItem("coinScoutSetAside")||"[]")||[];const savedSilver=localStorage.getItem("coinScoutSilver");if(savedSilver)$('silver').value=savedSilver;}catch(e){session=[];setAside=[];}
+}
+function saveSaved(){
+ try{localStorage.setItem("coinScoutSession",JSON.stringify(session));localStorage.setItem("coinScoutSetAside",JSON.stringify(setAside));localStorage.setItem("coinScoutSilver",$('silver').value||"");}catch(e){}
+}
+let frontFile=null,backFile=null,model=null,session=[],setAside=[];
+let ocrWorker=null,ocrBusy=false,ocrCreateWorker=null;
+let lastScreened=null;
+let deferredInstallPrompt=null;
+
+function wire(id,img,setter){
+ const input=$(id);
+ const showFile=(f)=>{
+  setter(f);
+  if(!f){img.removeAttribute("src");img.style.display="none";return;}
+  // Android-safe preview: FileReader first. Do not depend on blob URLs or image.onload.
+  img.style.display="block";
+  img.alt="Coin photo preview";
+  const r=new FileReader();
+  r.onload=e=>{img.src=e.target.result;img.style.display="block";};
+  r.onerror=()=>{
+   try{
+    const u=URL.createObjectURL(f);
+    img.src=u;img.style.display="block";
+    img.onload=()=>setTimeout(()=>URL.revokeObjectURL(u),2000);
+   }catch(err){console.warn("Photo preview failed",err);}
+  };
+  r.readAsDataURL(f);
+ };
+ input.addEventListener("change",()=>showFile(input.files?.[0]||null));
+ input.addEventListener("input",()=>showFile(input.files?.[0]||null));
+}
+wire("front",$("fp"),f=>frontFile=f);wire("back",$("bp"),f=>backFile=f);
+$("front").addEventListener("change",()=>{if(frontFile&&backFile&&$("denom").value){$("ocrStatus").style.display="block";$("ocrStatus").innerHTML="<b>📸 Both photos ready.</b> Tap <b>READ YEAR + MINT</b> to let Scout try to fill the fields.";}});
+$("back").addEventListener("change",()=>{if(frontFile&&backFile&&$("denom").value){$("ocrStatus").style.display="block";$("ocrStatus").innerHTML="<b>📸 Both photos ready.</b> Tap <b>READ YEAR + MINT</b> to let Scout try to fill the fields.";}});
+
+const denomLabels=[
+ "a U.S. cent","a U.S. nickel","a U.S. dime","a U.S. quarter","a U.S. half dollar","a U.S. dollar coin"
+];
+const denomMap={
+ "a U.S. cent":"Cent","a U.S. nickel":"Nickel","a U.S. dime":"Dime",
+ "a U.S. quarter":"Quarter","a U.S. half dollar":"Half Dollar","a U.S. dollar coin":"Dollar"
+};
+const subtypeLabels={
+ Cent:["a U.S. Lincoln cent","a U.S. Wheat cent","a U.S. Indian Head cent"],
+ Nickel:["a U.S. Jefferson nickel","a U.S. Buffalo nickel"],
+ Dime:["a U.S. Mercury dime","a U.S. Roosevelt dime","a U.S. Barber dime"],
+ Quarter:["a U.S. Standing Liberty quarter","a U.S. Washington quarter","a U.S. Barber quarter"],
+ "Half Dollar":["a U.S. Walking Liberty half dollar","a U.S. Franklin half dollar","a U.S. Kennedy half dollar"],
+ Dollar:["a U.S. Morgan dollar","a U.S. Peace dollar","a U.S. Eisenhower dollar","a U.S. Susan B. Anthony dollar","a modern U.S. dollar coin"]
+};
+
+async function getModel(){
+ if(!model){
+  $("visualStatus").style.display="block";
+  $("visualStatus").textContent="Loading browser vision model…";
+  model=await pipeline("zero-shot-image-classification","Xenova/clip-vit-base-patch32",{dtype:"q8"});
+ }
+ return model;
+}
+
+function renderVisualResults(title,items){
+ $("visualResults").innerHTML=`<b>${title}</b>`+
+ items.map((x,i)=>`<div class="candidate"><span>${i+1}. ${x.label}</span><b>${(x.score*100).toFixed(1)}%</b></div>`).join("");
+ $("visualResults").style.display="block";
+}
+
+function showManualDenom(show=true){
+ $("manualDenom").style.display=show?"block":"none";
+}
+
+function selectDenom(d){
+  $("denom").value=d;
+  document.querySelectorAll(".denomBtn").forEach(b=>{
+    const active=b.dataset.d===d;
+    b.style.outline=active?"3px solid #111827":"none";
+    b.style.transform=active?"scale(1.01)":"";
+  });
+  $("denomChosen").style.display="block";
+  $("denomChosen").innerHTML=`<b>✓ ${d} selected</b><br><span class="note">Design analysis is limited to ${d}. Your denomination stays in control.</span>`;
+  livePreview();
+}
+
+function loadImageFile(file){
+ return new Promise((resolve,reject)=>{
+  const img=new Image();
+  img.onload=()=>{try{URL.revokeObjectURL(img.src)}catch(e){} resolve(img)};
+  img.onerror=reject;
+  img.src=URL.createObjectURL(file);
+ });
+}
+function canvasFromImage(img,maxSide=1200){
+ const scale=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));
+ const c=document.createElement("canvas"); c.width=Math.max(1,Math.round(img.naturalWidth*scale)); c.height=Math.max(1,Math.round(img.naturalHeight*scale));
+ c.getContext("2d").drawImage(img,0,0,c.width,c.height); return c;
+}
+async function getOpenCV(){
+ if(window.cv&&window.cv.Mat)return window.cv;
+ if(window.__coinScoutCvPromise)return window.__coinScoutCvPromise;
+ window.__coinScoutCvPromise=new Promise((resolve,reject)=>{
+  const s=document.createElement("script"); s.src="https://docs.opencv.org/4.x/opencv.js"; s.async=true;
+  s.onload=()=>{const start=Date.now();const wait=()=>{if(window.cv&&window.cv.Mat){resolve(window.cv);return}if(Date.now()-start>15000){reject(new Error("Coin locator did not finish loading."));return}setTimeout(wait,100)};wait()};
+  s.onerror=()=>reject(new Error("Coin locator could not load.")); document.head.appendChild(s);
+ });
+ return window.__coinScoutCvPromise;
+}
+async function locateCoin(file){
+ const img=await loadImageFile(file); const canvas=canvasFromImage(img,1200); let cv;
+ try{cv=await getOpenCV();}catch(e){return {canvas,found:false,x:0,y:0,w:canvas.width,h:canvas.height,reason:"locator unavailable"};}
+ let src=null,gray=null,blur=null,circles=null;
+ try{
+  src=cv.imread(canvas); gray=new cv.Mat(); blur=new cv.Mat(); circles=new cv.Mat();
+  cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY); cv.GaussianBlur(gray,blur,new cv.Size(9,9),2,2,cv.BORDER_DEFAULT);
+  const minR=Math.max(35,Math.round(Math.min(canvas.width,canvas.height)*.045)); const maxR=Math.round(Math.min(canvas.width,canvas.height)*.42);
+  cv.HoughCircles(blur,circles,cv.HOUGH_GRADIENT,1.2,Math.max(80,minR*1.4),100,24,minR,maxR);
+  let best=null;
+  for(let i=0;i<circles.cols;i++){
+   const x=circles.data32F[i*3],y=circles.data32F[i*3+1],r=circles.data32F[i*3+2]; if(!isFinite(x)||!isFinite(y)||!isFinite(r))continue;
+   const edgePenalty=(x<r*.6||y<r*.6||x+r*.6>canvas.width||y+r*.6>canvas.height)?.72:1; const score=r*r*edgePenalty;
+   if(!best||score>best.score)best={x,y,r,score};
+  }
+  if(best){const pad=best.r*1.22,x=Math.max(0,best.x-pad),y=Math.max(0,best.y-pad),x2=Math.min(canvas.width,best.x+pad),y2=Math.min(canvas.height,best.y+pad);return {canvas,found:true,x,y,w:x2-x,h:y2-y,centerX:best.x,centerY:best.y,radius:best.r};}
+ }finally{[circles,blur,gray,src].forEach(m=>{try{m?.delete()}catch(e){}})}
+ const side=Math.min(canvas.width,canvas.height)*.78; return {canvas,found:false,x:(canvas.width-side)/2,y:(canvas.height-side)/2,w:side,h:side,reason:"no reliable circle"};
+}
+function cropRelative(loc,rx,ry,rw,rh,mode="strong"){
+ const sx=Math.max(0,Math.round(loc.x+loc.w*rx)),sy=Math.max(0,Math.round(loc.y+loc.h*ry));
+ const sw=Math.max(1,Math.min(loc.canvas.width-sx,Math.round(loc.w*rw))),sh=Math.max(1,Math.min(loc.canvas.height-sy,Math.round(loc.h*rh)));
+ const scale=Math.min(7,2200/Math.max(sw,sh)); const c=document.createElement("canvas"); c.width=Math.max(900,Math.round(sw*scale)); c.height=Math.max(500,Math.round(sh*scale));
+ const ctx=c.getContext("2d",{willReadFrequently:true});ctx.drawImage(loc.canvas,sx,sy,sw,sh,0,0,c.width,c.height);
+ const data=ctx.getImageData(0,0,c.width,c.height),p=data.data; for(let i=0;i<p.length;i+=4){const g=.299*p[i]+.587*p[i+1]+.114*p[i+2];let v=g;if(mode==="threshold")v=g<150?0:255;else if(mode==="soft")v=Math.max(0,Math.min(255,128+(g-128)*1.35));else v=Math.max(0,Math.min(255,128+(g-128)*2.25);p[i]=p[i+1]=p[i+2]=v;}ctx.putImageData(data,0,0);return c.toDataURL("image/png");
+}
+async function buildOCRTargets(file,side="front"){
+ const loc=await locateCoin(file),targets=[];
+ if(side==="front"){
+  const crops=[{x:.48,y:.60,w:.44,h:.30},{x:.55,y:.66,w:.35,h:.25},{x:.38,y:.55,w:.58,h:.38},{x:.28,y:.48,w:.68,h:.48}];
+  for(const c of crops)for(const mode of ["strong","soft","threshold"])targets.push({kind:"year",image:cropRelative(loc,c.x,c.y,c.w,c.h,mode),located:loc.found});
+ }else{
+  const crops=[{x:.60,y:.40,w:.25,h:.30},{x:.55,y:.34,w:.32,h:.36},{x:.64,y:.46,w:.20,h:.22},{x:.48,y:.30,w:.42,h:.42}];
+  for(const c of crops)for(const mode of ["strong","soft","threshold"])targets.push({kind:"mint",image:cropRelative(loc,c.x,c.y,c.w,c.h,mode),located:loc.found});
+ }
+ return targets;
+}
+async function getOCRWorker(kind="year"){
+ if(!ocrWorker){$("ocrStatus").style.display="block";$("ocrStatus").innerHTML="<b>🔤 Loading local OCR…</b><br><span class=\"note\">First use downloads the free English OCR model to this phone.</span>";if(!ocrCreateWorker){const mod=await import("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/+esm");ocrCreateWorker=mod.createWorker}ocrWorker=await ocrCreateWorker("eng",1,{logger:m=>{if(m.status&&typeof m.progress==="number")$("ocrStatus").innerHTML=`<b>🔤 ${m.status}</b><br><span class="note">${Math.round(m.progress*100)}%</span>`}})}
+ await ocrWorker.setParameters({tessedit_pageseg_mode:"11",tessedit_char_whitelist:kind==="year"?"0123456789":"PDSWOCpdswoc"});return ocrWorker;
+}
+function parseOCR(text,confidence=0,kind="year"){
+ const raw=(text||"").replace(/\s+/g," ").trim(),normalized=raw.toUpperCase(),years=[],mints=[];
+ if(kind==="year"){
+  const repaired=normalized.replace(/[ILO]/g,"1").replace(/Z/g,"2").replace(/[SB]/g,"5").replace(/G/g,"6").replace(/T/g,"7").replace(/B/g,"8").replace(/Q/g,"9");const re=/(18\d{2}|19\d{2}|20\d{2})/g;let m;
+  while((m=re.exec(repaired))){const y=+m[1];if(y>=1793&&y<=2026&&!years.some(x=>x.year===y))years.push({year:y,confidence});}
+ }else{const tokens=normalized.replace(/[^PDSWOC ]/g," ").split(/\s+/).filter(Boolean);tokens.forEach(x=>{if(/^[PDSWOC]$/.test(x))mints.push({mint:x,confidence})});if(/CC/.test(normalized))mints.push({mint:"CC",confidence});}
+ return {years,mints,raw,kind};
+}
+function validMintsFor(d,y){
+ if(!d)return ["P","D","S","W","O","CC"];
+ if(d==="Nickel"){if(y&&y<1980)return ["D","S"];if(y>=1942&&y<=1945)return ["P","D","S"];if(y>=1968)return ["P","D","S"];return ["P","D","S"];}
+ if(d==="Cent")return y>=1908?["P","D","S"]:["P","D","S","O","CC"];
+ if(d==="Dime")return y>=1916?["P","D","S"]:["P","D","S","O","CC"];
+ if(d==="Quarter")return y>=1932?["P","D","S"]:["P","D","S","O","CC"];
+ if(d==="Half Dollar")return y>=1964?["P","D","S"]:["P","D","S","O","CC"];
+ if(d==="Dollar")return y>=1971?["P","D","S","W"]:["P","D","S","O","CC"];
+ return ["P","D","S","W","O","CC"];
+}
+function chooseOCRYear(results){const counts=new Map();results.forEach(r=>r.years.forEach(o=>{const cur=counts.get(o.year)||{votes:0,confidence:0};cur.votes++;cur.confidence=Math.max(cur.confidence,o.confidence||0);counts.set(o.year,cur)}));const ranked=[...counts.entries()].sort((a,b)=>b[1].votes-a[1].votes||b[1].confidence-a[1].confidence);if(!ranked.length)return null;const top=ranked[0],second=ranked[1];return {year:top[0],votes:top[1].votes,confidence:top[1].confidence,ambiguous:!!second&&top[1].votes===second[1].votes};}
+function chooseOCRMints(results,year,d){const valid=new Set(validMintsFor(d,year)),counts=new Map();results.forEach(r=>r.mints.forEach(o=>{if(valid.has(o.mint)){const cur=counts.get(o.mint)||{votes:0,confidence:0};cur.votes++;cur.confidence=Math.max(cur.confidence,o.confidence||0);counts.set(o.mint,cur)}}));return [...counts.entries()].sort((a,b)=>b[1].votes-a[1].votes||b[1].confidence-a[1].confidence);}
+async function runOCR(){
+ if(ocrBusy)return;const d=$("denom").value;if(!d){alert("Choose the denomination first.");return;}if(!frontFile&&!backFile){alert("Take at least one coin photo first.");return;}ocrBusy=true;$("ocrBtn").disabled=true;
+ try{
+  const files=[];if(frontFile)files.push({file:frontFile,side:"front"});if(backFile)files.push({file:backFile,side:"back"});const results=[];let pass=0,total=0;const allTargets=[];
+  for(const item of files){const targets=await buildOCRTargets(item.file,item.side);total+=targets.length;allTargets.push(...targets);}
+  for(const target of allTargets){pass++;$("ocrStatus").innerHTML=`<b>🔤 Reading ${target.kind} ${pass}/${total}…</b><br><span class="note">Finding the coin first, then reading the relevant region.</span>`;const w=await getOCRWorker(target.kind);await w.setParameters({tessedit_pageseg_mode:"11",tessedit_char_whitelist:target.kind==="year"?"0123456789":"PDSWOCpdswoc"});const out=await w.recognize(target.image);results.push(parseOCR(out.data.text,out.data.confidence||0,target.kind));}
+  const yr=chooseOCRYear(results),yearForMint=yr&&!yr.ambiguous?yr.year:parseInt($("year").value,10)||null,mints=chooseOCRMints(results,yearForMint,d),messages=[];
+  if(yr&&!yr.ambiguous&&yr.votes>=2){$("year").value=String(yr.year);forcePreview();messages.push(`Year read: <b>${yr.year}</b> <span class="note">(${yr.votes} OCR passes)</span>`);}else if(yr)messages.push("Possible year detected — <b>verify the date manually</b>.");else messages.push("<b>Year not read.</b> The coin/date region did not produce a reliable 4-digit date.");
+  if(mints.length){const best=mints[0];if(best[1].votes>=3&&best[1].confidence>=55){$("mint").value=best[0];forcePreview();messages.push(`Mint read: <b>${best[0]}</b> <span class="note">(${best[1].votes} mint-region passes agreed)</span>`);}else messages.push(`Mint candidates: <b>${mints.slice(0,3).map(x=>x[0]).join(", ")}</b> — verify.`);}else messages.push("Mint not read — <b>leave Unknown / none unless you can see a mark.</b>");
+  $("ocrStatus").style.display="block";$("ocrStatus").innerHTML=`<b>✓ Local OCR finished — coin-located multi-pass scan</b><br>${messages.join("<br>")}<br><span class="note">Scout locates the coin first, then searches the date/mint region relative to that coin. OCR is a helper, not an authenticator.</span>`;
+ }catch(e){console.error(e);$("ocrStatus").style.display="block";$("ocrStatus").innerHTML=`<b>OCR unavailable.</b><br><span class="note">${String(e?.message||e)}<br>You can still enter year/mint manually.</span>`;}finally{ocrBusy=false;$("ocrBtn").disabled=false;}
+}
+$("ocrBtn").onclick=runOCR;
+
+$("visualBtn").onclick=async()=>{
+  const d=$("denom").value;
+  const f=frontFile||backFile;
+  if(!d){alert("Choose the denomination first.");return}
+  if(!f){alert("Take a front photo first.");return}
+  const labels=subtypeLabels[d]||[];
+  if(!labels.length){alert("No design set is available for this denomination yet.");return}
+  try{
+    $("visualStatus").style.display="block";
+    $("visualStatus").innerHTML=`<b>🔎 Analyzing ${d} design…</b><br><span class="note">Visual hint only. Scout will not change the denomination or invent the year.</span>`;
+    const m=await getModel(),u=URL.createObjectURL(f);
+    const sub=await m(u,labels);
+    URL.revokeObjectURL(u);
+    renderVisualResults(`Design suggestions within ${d} — hints only`,sub.slice(0,5));
+    $("visualStatus").innerHTML=`<b>✓ ${d} design scan complete</b><br><span class="note">Use this as a hint. Read the year and mint from the coin when possible.</span>`;
+  }catch(e){
+    console.error(e);
+    $("visualStatus").innerHTML=`<b>Design scan unavailable.</b><br><span class="note">${String(e?.message||e)}<br>Your manual denomination is still active.</span>`;
+  }
+};
+
+document.querySelectorAll(".denomBtn").forEach(b=>b.onclick=()=>{
+  selectDenom(b.dataset.d);
+  $("visualStatus").style.display="none";
+  $("visualResults").style.display="none";
+  $("year").focus();
+});
+
+$("year").addEventListener("input",e=>e.target.value=e.target.value.replace(/\D/g,"").slice(0,4));
+$("silver").addEventListener("change",saveSaved);
+$("minus").onclick=()=>{let y=parseInt($("year").value)||0;if(y){$("year").value=Math.max(1,y-1);forcePreview()}};
+$("plus").onclick=()=>{let y=parseInt($("year").value)||0;if(y){$("year").value=y+1;forcePreview()}};
+document.querySelectorAll(".quickYear").forEach(b=>b.onclick=()=>{$("year").value=b.dataset.y;forcePreview()});
+
+const oz90={Dime:.07234,Quarter:.18084,"Half Dollar":.36169,Dollar:.77344};
+function money(x){return "$"+x.toFixed(2)}
+
+function screenCoin(y,d,m,s,edge,weight){
+ let comp="Not determined",tri="CHECK",silverPct=0,melt=0,flags=[],notes=[],reason="";
+
+ if(!y||!d)return{comp,tri,silverPct,melt,flags,notes:["Enter a year and denomination first."],reason:"Missing year or denomination."};
+
+ if(d==="Cent"){
+  if(y<1857){comp="Early U.S. copper cent era — exact type needed";tri="HOT";reason="Very old cent: exact type matters."}
+  else if(y<=1864){comp="Early copper / bronze transition era";tri="CHECK";reason="Early cent; confirm exact issue."}
+  else if(y<=1942){comp="Bronze";tri="COMMON";reason="No automatic major trigger from year alone."}
+  else if(y===1943){comp="Zinc-coated steel";tri="HOT";reason="1943 is a famous wrong-metal error hunting year.";flags.push("Check for a genuine 1943 bronze/off-metal cent.")}
+  else if(y===1944){comp="Bronze";tri="CHECK";reason="1944 is a famous wrong-metal error hunting year.";flags.push("Check for a possible 1944 steel/wrong-metal cent.")}
+  else if(y<=1981){comp="Bronze";tri="COMMON";reason="No automatic major trigger from year alone."}
+  else if(y===1982){comp="Transition year — bronze and copper-plated zinc";tri="CHECK";reason="1982 is a composition transition year.";flags.push("Weight/diagnostic testing can separate the compositions.")}
+  else{comp="Copper-plated zinc";tri="COMMON";reason="No major trigger from the entered information."}
+  if(y===1909){tri="HOT";reason="1909 Lincoln cent: mint and VDB status can change value dramatically.";flags.push("Check mint mark and, if S, inspect reverse for VDB.")}
+  if(y===1911&&m==="S"){tri="HOT";reason="1911-S is an important Lincoln cent date.";flags.push("Set aside for condition/authenticity review.")}
+  if(y===1914&&m==="D"){tri="HOT";reason="1914-D is a major Lincoln cent key date.";flags.push("Authenticate before selling; counterfeits exist.")}
+  if(y===1922){tri="HOT";reason="1922 is a major Lincoln variety-hunting year.";flags.push("Check carefully for the No D / Plain variety.")}
+  if(y===1931&&m==="S"){tri="HOT";reason="1931-S is a major Lincoln cent key date."}
+  if(y===1955){tri="HOT";reason="1955 is a major doubled-die hunting year.";flags.push("Inspect for the 1955 Doubled Die Obverse.")}
+  if(y===1969&&m==="S"){tri="CHECK";reason="1969-S is a major doubled-die hunting year.";flags.push("Inspect date/lettering for a genuine DDO.")}
+  if(y===1972){tri="CHECK";reason="1972 is a major doubled-die hunting year.";flags.push("Inspect the obverse for the 1972 DDO.")}
+  if(y===1983){tri="CHECK";reason="1983 has important doubled-die variety diagnostics.";flags.push("Inspect closely if the coin looks unusual.")}
+  if(y===1992){tri="CHECK";reason="1992 is a rare transitional-variety hunting year.";flags.push("Inspect AMERICA's AM for the rare Close AM configuration.")}
+  if(y===1995){tri="CHECK";reason="1995 is a doubled-die hunting year.";flags.push("Inspect obverse lettering for the 1995 DDO.")}
+  if(y===2000){tri="CHECK";reason="Modern Lincoln cent variety-hunting year.";flags.push("Inspect the reverse lettering/AMERICA area for an obvious variety or error; ordinary 2000 cents are common.")}
+  if(y===2004||y===2005){tri="CHECK";reason="Modern Lincoln cent variety/error hunting years.";flags.push("Only set aside if the coin shows a clear unusual feature; the date alone does not make it valuable.")}
+
+ }else if(d==="Nickel"){
+  if(y<1866){comp="Older five-cent issue — exact type needed";tri="HOT";reason="Very old five-cent coin needs exact attribution."}
+  else if(y<1883){comp="Shield nickel era";tri="HOT";reason="Shield nickels are obsolete five-cent issues with collector value potential.";flags.push("SET ASIDE. Identify the exact date/mint before selling.")}
+  else if(y<1913){comp="Liberty Head (V) nickel era";tri="HOT";reason="Liberty Head nickels can carry collector value well above face.";flags.push("SET ASIDE. Identify the exact date/mint; 1883 and 1912-D/S deserve special attention.")}
+  else if(y<1938){comp="Buffalo nickel era";tri="CHECK";reason="Buffalo nickels can have collector value, especially key dates and recognizable dates.";flags.push("Do not bulk-discard a Buffalo nickel just because it is worn; check the date and mint.")}
+  else if(y<=1941){
+   comp="Copper-nickel";tri="COMMON";reason="No automatic major trigger from year alone.";
+   if(y===1938){
+    tri="CHECK";reason="1938 is an early Jefferson date with important D/S mint issues.";
+    flags.push("Check the mint mark carefully. 1938-D and 1938-S are important early Jefferson issues.");
+   }
+   if(y===1939){
+    tri="CHECK";reason="1939 is a Jefferson nickel variety/key-date hunting year.";
+    flags.push("Check the mint mark. 1939-D is a series key date; 1939-S also deserves individual review.");
+    flags.push("Inspect the reverse for the 1939 Reverse of 1938 / Reverse of 1940 diagnostics and Doubled Monticello variety.");
+    if(m==="D"){
+     tri="HOT";reason="1939-D Jefferson nickel: major series key date.";
+     flags.push("SET ASIDE. Authenticate/price individually; 1939-D has important reverse varieties.");
+    }
+   }
+  }
+  else if(y<=1945){
+   comp="Wartime Jefferson — 35% silver possible";tri="CHECK";reason="Wartime Jefferson nickels can contain silver.";
+   flags.push("Look for the large P, D or S mint mark above Monticello.");
+   if(["P","D","S"].includes(m)){tri="MELT";silverPct=35;reason="Wartime P/D/S issue: 35% silver alloy."}
+  }else{comp="Copper-nickel";tri="COMMON";reason="No automatic major trigger from year alone."}
+  if(y===1913){tri="HOT";reason="1913 nickel requires exact type identification.";flags.push("SET ASIDE. Confirm whether this is a Liberty Head or Buffalo nickel before doing anything else.")}
+  if(y===1914&&m==="D"){tri="HOT";reason="1914-D Buffalo nickel is a key-date hunting year.";flags.push("SET ASIDE for individual review.")}
+  if(y===1921&&m==="S"){tri="HOT";reason="1921-S Buffalo nickel is a key-date hunting year.";flags.push("SET ASIDE for individual review.")}
+  if(y===1924&&m==="S"){tri="HOT";reason="1924-S Buffalo nickel is a key-date hunting year.";flags.push("SET ASIDE for individual review.")}
+  if(y===1926&&m==="S"){tri="HOT";reason="1926-S Buffalo nickel is a major key-date hunting year.";flags.push("SET ASIDE for individual review.")}
+  if(d==="Nickel"&&y===1950&&m==="D"){
+   tri="HOT";reason="1950-D Jefferson nickel is a major series key date.";
+   flags.push("SET ASIDE. 1950-D is one of the key Jefferson nickel dates.");
+  }
+
+ }else if(d==="Dime"){
+  if(y<=1964){comp="90% silver";tri="MELT";silverPct=90;reason="Pre-1965 U.S. dime: intrinsic silver value."}
+  else{comp="Copper-nickel clad";tri="COMMON";reason="1965+ circulation dime is normally clad."}
+  if(y===1916&&m==="D"){tri="HOT";reason="1916-D Mercury dime is a major key date.";flags.push("Set aside and authenticate.")}
+  if(y===1942){tri="HOT";reason="1942 is a Mercury dime overdate hunting year.";flags.push("Check for the 1942/1 overdate.")}
+  if(y<1916){tri="HOT";reason="Pre-Mercury dime: older type needs exact identification.";flags.push("Don't bulk-sell without identifying the exact type.")}
+
+ }else if(d==="Quarter"){
+  if(y<=1964){comp="90% silver";tri="MELT";silverPct=90;reason="Pre-1965 U.S. quarter: intrinsic silver value."}
+  else{comp="Copper-nickel clad";tri="COMMON";reason="1965+ circulation quarter is normally clad."}
+  if(y===1916){tri="HOT";reason="1916 Standing Liberty quarter is a major key date."}
+  if(y===1932&&(m==="D"||m==="S")){tri="HOT";reason="1932-D and 1932-S Washington quarters are key dates.";flags.push("Authenticate/grade carefully.")}
+  if(y<1932){tri="CHECK";reason="Older quarter type needs exact identification.";flags.push("Barber/Standing Liberty issues can be worth more than melt.")}
+  if(y===1975||y===1976){notes.push("Bicentennial circulation quarters are clad; some special collector issues were silver.")}
+
+ }else if(d==="Half Dollar"){
+  if(y<=1964){comp="90% silver";tri="MELT";silverPct=90;reason="1964 or earlier U.S. half dollar: 90% silver."}
+  else if(y<=1970){comp="40% silver";tri="MELT";silverPct=40;reason="1965–1970 U.S. circulation half dollar: 40% silver."}
+  else{comp="Copper-nickel clad";tri="COMMON";reason="1971+ circulation half dollar is normally clad."}
+  if(y<1948){tri="HOT";reason="Older half-dollar type: collector value may exceed melt.";flags.push("Identify exact type/date/mint before selling.")}
+  if(y===1916){tri="HOT";reason="1916 Walking Liberty half is a major first-year issue."}
+  if((y===1975||y===1976)&&m==="S"){tri="CHECK";reason="1975–1976 S Kennedy halves include special collector issues that may be 40% silver.";flags.push("Determine whether it is the 40% silver collector issue before treating it as clad.")}
+  if((y===1975||y===1976)&&m!=="S"){notes.push("For ordinary P/D circulation pieces, clad is expected.")}
+
+ }else if(d==="Dollar"){
+  if(y>=1878&&y<=1921){comp="90% silver — Morgan dollar";tri="MELT+";silverPct=90;reason="Morgan dollar has silver plus possible collector premium.";flags.push("Do not scrap-price automatically; date, mint and condition matter.")}
+  else if(y>=1921&&y<=1935){comp="90% silver — Peace dollar";tri="MELT+";silverPct=90;reason="Peace dollar has silver plus possible collector premium.";flags.push("Do not scrap-price automatically; date, mint and condition matter.")}
+  else if(y>=1971&&y<=1978){
+   comp="Eisenhower dollar — clad or 40% silver collector issue";tri="CHECK";reason="Eisenhower dollars require exact issue identification.";
+   if(m==="S"){flags.push("S-mint Ike can be a 40% silver collector issue; verify exact issue.");}
+   else flags.push("P/D circulation Ike is normally clad.");
+  }else if(y>=1979&&y<=1999){comp="Clad — Susan B. Anthony dollar";tri="COMMON";reason="No automatic major trigger from year alone."}
+  else if(y>=2000){comp="Modern dollar alloy";tri="COMMON";reason="No automatic major trigger from year alone."}
+  else{comp="Older dollar — exact type needed";tri="HOT";reason="Older dollar issue requires exact identification."}
+ }
+
+ // MINT-UNKNOWN SAFETY NET:
+  // If a date can hide a valuable mint-specific issue, an unknown mint
+  // should force CHECK rather than allowing a false COMMON result.
+  if(!m){
+    if(d==="Cent" && [1909,1911,1914,1931].includes(y)){
+      tri="CHECK";
+      reason="Mint mark is unknown on a date with important mint-specific issues.";
+      flags.push("STOP: find and read the mint mark before discarding this coin.");
+    }
+    if(d==="Cent" && [1969,1972,1992].includes(y)){
+      tri="CHECK";
+      reason="This date has a recognized variety/issue that needs closer inspection.";
+      flags.push("STOP: inspect the coin and determine the mint before moving on.");
+    }
+    if(d==="Nickel" && [1938,1939,1950].includes(y)){
+      tri="CHECK";
+      reason="This Jefferson date has important mint-specific issues.";
+      flags.push("STOP: find and read the mint mark before discarding this coin.");
+    }
+    if(d==="Quarter" && y===1932){
+      tri="CHECK";
+      reason="1932 includes the major D and S key dates.";
+      flags.push("STOP: determine whether this is 1932-D, 1932-S, or Philadelphia before moving on.");
+    }
+    if(d==="Dime" && y===1916){
+      tri="CHECK";
+      reason="1916 includes the major 1916-D Mercury dime key date.";
+      flags.push("STOP: determine the mint before discarding this coin.");
+    }
+  }
+
+  // Physical checks: deliberately conservative.
+ if(edge==="copper" && (d==="Dime"||d==="Quarter"||d==="Half Dollar")){
+  if(tri==="MELT"||tri==="MELT+")notes.push("Copper-colored edge is consistent with a clad construction; re-check if the year should be silver.");
+ }
+ if(edge==="no-copper" && (d==="Dime"||d==="Quarter"||d==="Half Dollar") && y>=1965){
+  if(tri==="COMMON"){tri="CHECK";reason="The entered year normally indicates clad, but the edge does not show an obvious copper core.";flags.push("Do not assume silver. Verify weight/issue before calling it silver.")}
+ }
+ if(weight){
+  const w=parseFloat(weight);
+  const targets={Cent:{modern:2.5,wheat:3.11},Nickel:5,Dime:2.268,Quarter:5.67,"Half Dollar":11.34,Dollar:26.73};
+  if(d==="Dime"&&y<=1964&&Math.abs(w-2.5)>.25)flags.push("Weight is not close to the normal 90% silver dime weight; re-check denomination/year.");
+  if(d==="Quarter"&&y<=1964&&Math.abs(w-6.25)>.35)flags.push("Weight is not close to the normal 90% silver quarter weight; re-check.");
+  if(d==="Half Dollar"&&y<=1970&&Math.abs(w-12.5)>.5)flags.push("Weight is not close to the normal silver-era half weight; re-check.");
+  if(d==="Half Dollar"&&y>=1971&&Math.abs(w-11.34)>.5)notes.push("Weight is in the neighborhood of modern clad half-dollar specifications.");
+  if(d==="Nickel"&&y>=1938&&Math.abs(w-5)>.3)flags.push("Weight is outside normal Jefferson-nickel territory; re-check.");
+ }
+
+ if(silverPct&&oz90[d]&&s>0){
+  melt=(d==="Half Dollar"&&silverPct===40)?0.1479*s:oz90[d]*s*silverPct/90;
+ }
+ return{comp,tri,silverPct,melt,flags,notes,reason};
+}
+
+
+function renderResult(r,y,d,m,opts={}){
+ const cls=r.tri==="COMMON"?"common":(r.tri==="MELT"||r.tri==="MELT+")?"melt":r.tri==="HOT"?"hot":"check";
+ const badge={COMMON:"🟢 COMMON",CHECK:"🟡 CHECK",MELT:"🔵 MELT",MELTPLUS:"🔵 MELT+","MELT+":"🔵 MELT+",HOT:"🔴 HOT"}[r.tri]||"🟡 CHECK";
+ let h=`<div class="big">${badge}</div>
+ <div class="row"><b>Type</b><span>${d||"Unknown"}</span></div>
+ <div class="row"><b>Year</b><span>${y||"Not entered"}</span></div>
+ <div class="row"><b>Mint</b><span>${m||"Unknown / none"}</span></div>
+ <div class="row"><b>Composition</b><span>${r.comp}</span></div>`;
+ if(r.silverPct)h+=`<div class="row"><b>Silver content</b><span>${r.silverPct}%</span></div>`;
+ h+=`<div class="row"><b>Estimated melt floor</b><span>${money(r.melt)}</span></div>
+ <div class="row"><b>Why flagged</b><span>${r.reason}</span></div>`;
+ if(r.flags.length)h+=`<h3>🚩 STOP & CHECK</h3><ul>${r.flags.map(x=>`<li>${x}</li>`).join("")}</ul>`;
+ if(r.notes.length)h+=`<h3>Notes</h3><ul>${r.notes.map(x=>`<li>${x}</li>`).join("")}</ul>`;
+ if(r.tri==="COMMON")h+=`<p class="note"><b>Move on.</b> No major treasure trigger found from the information entered.</p>`;
+ if(r.tri==="MELT")h+=`<p><b>KEEP IT.</b> Intrinsic silver value detected. Collector value may still exist.</p>`;
+ if(r.tri==="MELT+")h+=`<p><b>KEEP IT — DON'T SCRAP-PRICE IT.</b> Silver plus automatic collector-value warning.</p>`;
+ if(r.tri==="CHECK")h+=`<p><b>HOLD IT.</b> This is a closer-look result, not a discard result.</p>`;
+ if(r.tri==="HOT")h+=`<p><b>SET IT ASIDE.</b> This deserves individual research/authentication.</p>`;
+ if(opts.research&&y&&d)h+=`<a class="linkbtn" href="${researchUrl(y,d,m)}" target="_blank" rel="noopener"><button>🔎 Research ${y} ${d}${m?" "+m:""} — Web</button></a>`;
+ if(y&&d)h+=`<button id="resultSetAside" class="setAside">⭐ Set This Coin Aside</button>`;
+ $("out").className="card "+cls;
+ $("out").innerHTML=h;
+ $("out").style.display="block";
+}
+
+
+document.addEventListener("click",e=>{
+ if(e.target&&e.target.id==="resultSetAside"){
+  const v=getCurrentInputs();if(!v.y||!v.d)return;const r=screenCoin(v.y,v.d,v.m,v.s,v.edge,v.weight);
+  setAside.unshift({year:v.y,denom:v.d,mint:v.m||"?",tri:r.tri,melt:r.melt||0,reason:r.reason,when:new Date().toISOString()});setAside=setAside.slice(0,100);saveSaved();renderSetAside();$("liveHint").textContent="⭐ Set aside. Keep it separate and research it later.";
+ }
+});
+
+function getCurrentInputs(){
+ return {
+  y: parseInt($("year").value),
+  d: $("denom").value,
+  m: $("mint").value,
+  s: parseFloat($("silver").value)||0,
+  edge: $("edge").value,
+  weight: $("weight").value
+ };
+}
+
+function livePreview(){
+ const v=getCurrentInputs();
+ if(!v.y||!v.d){
+  $("liveHint").textContent="Enter year + denomination to preview the current result.";
+  $("out").style.display="none";
+  return;
+ }
+ const r=screenCoin(v.y,v.d,v.m,v.s,v.edge,v.weight);
+ renderResult(r,v.y,v.d,v.m,{research:false});
+ $("liveHint").textContent="⚡ LIVE — this result always reflects the fields above. Press SCREEN to record this exact coin.";
+}
+
+function forcePreview(){
+ // Run immediately after any UI action that changes a field.
+ setTimeout(livePreview,0);
+}
+
+function renderSetAside(){
+ const el=$("setAsideLog");
+ if(!setAside.length){el.innerHTML="<div class=\"muted small\">No set-aside coins yet.</div>";return;}
+ el.innerHTML='<b>⭐ Set Aside</b>'+setAside.map((x,i)=>`<div class="sessionRow"><span>${x.denom}</span><b>${x.year}</b><span>${x.mint}</span><b>${x.tri}</b></div>`).join("");
+}
+
+function updateStats(){
+ const c={COMMON:0,MELT:0,MELTPLUS:0,CHECK:0,HOT:0};let total=0;
+ session.forEach(x=>{c[x.tri]=(c[x.tri]||0)+1;total+=x.melt||0});
+ $("nCommon").textContent=c.COMMON||0;$("nMelt").textContent=(c.MELT||0)+(c.MELTPLUS||0);
+ $("nCheck").textContent=c.CHECK||0;$("nHot").textContent=c.HOT||0;$("sessionMelt").textContent=money(total);$("sessionTotal").textContent=session.length;
+}
+function renderSessionLog(){
+ $("sessionLog").innerHTML=session.length?session.map(x=>`<div class="sessionRow"><span>${x.denom}</span><b>${x.year}</b><span>${x.mint}</span><b>${x.tri}</b></div>`).join(""):"No coins screened yet.";
+}
+
+function addSession(y,d,m,tri,melt,reason){
+ session.unshift({year:y||"?",denom:d||"?",mint:m||"?",tri,melt:melt||0,reason:reason||"",when:new Date().toISOString()});session=session.slice(0,200);saveSaved();
+ renderSessionLog();updateStats();
+}
+function researchUrl(y,d,m){
+ const q=[y,d,m].filter(Boolean).join(" ");
+ return "https://www.google.com/search?q="+encodeURIComponent(q+" PCGS CoinFacts");
+}
+$("screen").onclick=()=>{
+ const v=getCurrentInputs();
+ const r=screenCoin(v.y,v.d,v.m,v.s,v.edge,v.weight);
+ renderResult(r,v.y,v.d,v.m,{research:true});
+ addSession(v.y,v.d,v.m,r.tri,r.melt,r.reason);
+ $("liveHint").textContent="✅ Coin recorded. The card above is the recorded result. Change the fields for the next coin.";
+ $("out").scrollIntoView({behavior:"smooth"});
+};
+
+$("clear").onclick=()=>{
+  const keepDenom=$("denom").value;
+  ["front","back"].forEach(id=>$(id).value="");frontFile=null;backFile=null;
+  ["fp","bp"].forEach(id=>{$(id).src="";$(id).style.display="none"});
+  $("visualStatus").style.display="none";$("visualResults").style.display="none";$("year").value="";$("mint").value="";
+  $("edge").value="";$("weight").value="";$("out").style.display="none";
+  $("liveHint").textContent=keepDenom?`Ready for next ${keepDenom}.`:`Choose a denomination to begin.`;
+  if(keepDenom)selectDenom(keepDenom);
+  window.scrollTo({top:0,behavior:"smooth"});setTimeout(()=>$("year").focus(),120);
+};
+
+["year","denom","mint","silver","edge","weight"].forEach(id=>{
+ $(id).addEventListener("input",forcePreview);
+ $(id).addEventListener("change",forcePreview);
+});
+window.addEventListener("pageshow",forcePreview);
+
+$("clearLog").onclick=()=>{if(!confirm("Clear tonight's coin log and set-aside list?"))return;session=[];setAside=[];lastScreened=null;$("sessionLog").innerHTML="No coins screened yet.";renderSetAside();saveSaved();updateStats()};
+$("setAside").onclick=()=>{
+ const v=getCurrentInputs();
+ if(!v.y||!v.d){alert("Enter the year and denomination first.");return;}
+ const r=screenCoin(v.y,v.d,v.m,v.s,v.edge,v.weight);
+ const item={year:v.y,denom:v.d,mint:v.m||"?",tri:r.tri,melt:r.melt||0,reason:r.reason,when:new Date().toISOString()};
+ setAside.unshift(item);setAside=setAside.slice(0,100);lastScreened=item;saveSaved();renderSetAside();
+ $("liveHint").textContent="⭐ Set aside. Keep it separate and research it later.";
+};
+$("exportLog").onclick=()=>{
+ const rows=["Type,Year,Mint,Triage,Melt,Reason,Time"];
+ session.forEach(x=>rows.push([x.denom,x.year,x.mint,x.tri,x.melt||0,x.reason||"",x.when||""].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")));
+ const blob=new Blob([rows.join("\n")],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="coin-scout-tonight.csv";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;$("installBar").style.display="block";});
+$("installBtn").onclick=async()=>{if(!deferredInstallPrompt)return;deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;$("installBar").style.display="none";};
+window.addEventListener("appinstalled",()=>{$("installBar").style.display="none";});
+
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.warn));}
+loadSaved();renderSessionLog();renderSetAside();updateStats();
+</script>
+</body>
+</html>
